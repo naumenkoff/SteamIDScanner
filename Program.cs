@@ -11,9 +11,7 @@ namespace SteamIDScanner
         {
             IDFinder.ScanDirectories(SteamFolder);
             Console.WriteLine(
-                $"Просканировано {IDFinder.TotalScannedFolders} папок, {IDFinder.TotalScannedFiles} файлов, обнаружено {IDFinder.SteamProfiles.Count} аккаунтов" +
-                Environment.NewLine +
-                $"Было запущено {ThreadController.TotalExecutedThreads} потоков, выполнено однопоточных действий {ThreadController.TotalExecutedActions}.");
+                $"Просканировано {IDFinder.TotalScannedFolders} папок, {IDFinder.TotalScannedFiles} файлов, обнаружено {IDFinder.SteamProfiles.Count} аккаунтов");
             Console.ReadKey();
         }
         // .dmp .vdf .txt .mdmp .acf .json
