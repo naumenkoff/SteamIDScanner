@@ -5,41 +5,47 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace SteamIDScanner
+namespace SteamIDScanner;
+
+public static class IDFinder
 {
-    public static class IDFinder
+    public static readonly List<string> SteamProfiles = new();
+
+    private static string _activePath;
+    public static int TotalScannedFolders { get; private set; }
+    public static int TotalScannedFiles { get; private set; }
+    public static int TotalFailedFiles { get; private set; }
+
+    public static void ScanDirectories(string path)
     {
-        public static List<string> SteamProfiles = new List<string>();
-        public static int TotalScannedFolders { get; set; }
-        public static int TotalScannedFiles { get; set; }
-        public static string ActivePath { get; set; }
-
-
-        public static void ScanDirectories(string path)
+        var pathFolders = Directory.GetDirectories(path);
+        foreach (var folder in pathFolders)
         {
-            var pathFolders = Directory.GetDirectories(path);
-            foreach (var folder in pathFolders)
-            {
-                TotalScannedFolders++;
-                var directoryTask = new Task(() => ScanDirectories(folder));
-                directoryTask.Start();
-            }
-
-            var fileTask = new Task(() => ScanFiles(path));
-            fileTask.Start();
+            TotalScannedFolders++;
+            ScanDirectories(folder);
         }
 
-        private static void CheckFile(string file)
+        ScanFiles(path);
+    }
+
+    private static void ScanFiles(string path)
+    {
+        var pathFiles = Directory.GetFiles(path);
+        var tasks = pathFiles.Select(CheckFile).ToList();
+        Task.WhenAll(tasks);
+    }
+
+    private static async Task CheckFile(string file)
+    {
+        await Task.Run(() =>
         {
             try
             {
-                ActivePath = file;
+                _activePath = file;
                 if (Path.HasExtension(file))
                 {
                     var extension = Path.GetExtension(file);
-                    if (extension == ".dmp" || extension == ".vdf" ||
-                        extension == ".txt" || extension == ".mdmp" ||
-                        extension == ".acf" || extension == ".json")
+                    if (extension is ".dmp" or ".vdf" or ".txt" or ".mdmp" or ".acf" or ".json")
                     {
                         var fileContent = File.ReadAllText(file);
                         if (CheckForID(fileContent)) Console.WriteLine($"[FILE CONTENT] [{DateTime.Now}] " + file);
@@ -53,30 +59,21 @@ namespace SteamIDScanner
                         }
                     }
                 }
+
+                TotalScannedFiles++;
             }
             catch (Exception)
             {
-                // ignored
+                TotalFailedFiles++;
             }
 
-            Console.Title =
-                $"Проанализировано папок: {TotalScannedFolders} | Просканировано файлов: {TotalScannedFiles} | {ActivePath}";
-        }
+            Console.Title = $"Directories: {TotalScannedFolders} | Files: {TotalScannedFiles} | {_activePath}";
+            Task.Delay(1);
+        });
+    }
 
-        private static void ScanFiles(string path)
-        {
-            var pathFiles = Directory.GetFiles(path);
-            foreach (var file in pathFiles)
-            {
-                var fileTask = new Task(() => CheckFile(file));
-                fileTask.Start();
-                TotalScannedFiles++;
-            }
-        }
-
-        private static bool CheckForID(string text)
-        {
-            return text.Contains("113621430") || text.Contains("76561198073887158");
-        }
+    private static bool CheckForID(string text)
+    {
+        return text.Contains("113621430") || text.Contains("76561198073887158");
     }
 }
